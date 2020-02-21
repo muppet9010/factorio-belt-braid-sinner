@@ -1,5 +1,6 @@
 local Events = require("utility/events")
 local EntityHandling = require("scripts/entity_handling")
+local Sinned = require("scripts/sinned")
 
 local function CreateGlobals()
     EntityHandling.CreateGlobals()
@@ -8,6 +9,7 @@ end
 local function OnLoad()
     --Any Remote Interface registration calls can go in here or in root of control.lua
     EntityHandling.OnLoad()
+    Sinned.OnLoad()
 end
 
 local function OnSettingChanged(event)
@@ -34,4 +36,4 @@ Events.RegisterEvent(defines.events.on_player_mined_entity, "typeUndergroundBelt
 Events.RegisterEvent(defines.events.on_robot_mined_entity, "typeUndergroundBelt", {{filter = "type", type = "underground-belt"}})
 Events.RegisterEvent(defines.events.on_entity_died, "typeUndergroundBelt", {{filter = "type", type = "underground-belt"}})
 Events.RegisterEvent(defines.events.script_raised_destroy)
-Events.RegisterEvent(defines.events.on_player_rotated_entity)
+Events.RegisterEvent(defines.events.on_surface_created)
