@@ -4,6 +4,7 @@ local Sinned = require("scripts/sinned")
 
 local function CreateGlobals()
     EntityHandling.CreateGlobals()
+    Sinned.CreateGlobals()
 end
 
 local function OnLoad()
@@ -13,9 +14,7 @@ local function OnLoad()
 end
 
 local function OnSettingChanged(event)
-    --if event == nil or event.setting == "xxxxx" then
-    --	local x = tonumber(settings.global["xxxxx"].value)
-    --end
+    Sinned.OnSettingChanged(event)
 end
 
 local function OnStartup()

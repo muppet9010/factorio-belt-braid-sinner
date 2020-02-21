@@ -1,5 +1,4 @@
 Next:
-	- pacing an underground of the same colour between an exisitng underground route shouldn't trigger as you haven't braided, just shortened the exisitng route. Does need to update the used tiles however as the old route was removed and the new one established.
 
 
 Future:

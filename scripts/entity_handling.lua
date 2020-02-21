@@ -7,10 +7,12 @@ local Interfaces = require("utility/interfaces")
 local beltDirections = {horizontal = "h", vertical = "v"}
 
 EntityHandling.CreateGlobals = function()
-    --many globals have a surface first filter layer. id 1 for nauvis doesn't fire a surface created event
     global.entityHandling = global.entityHandling or {}
     global.entityHandling.playersWarned = global.entityHandling or {}
-    global.entityHandling.undergroundTiles = global.entityHandling.undergroundTiles or {[1] = {}}
+    global.entityHandling.undergroundTiles = global.entityHandling.undergroundTiles or {[1] = {}} -- has a surface first filter layer. id 1 is for nauvis as it doesn't fire a surface created event.
+    global.entityHandling.currentUndergroundRouteId = global.entityHandling.currentUndergroundRouteId or 0
+    global.entityHandling.undergroundRoutes = global.entityHandling.undergroundRoutes or {} -- array of pairs of underground belts: {entityId, position}
+    global.entityHandling.undergroundEntityIdToRouteId = global.entityHandling.undergroundEntityIdToRouteId or {}
 end
 
 EntityHandling.OnLoad = function()
@@ -73,9 +75,8 @@ EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
-    local debug = false
-    local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
-    local endPosString = Logging.PositionToString(endPos)
+    local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
+    local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
 
     local direction, change
     if startPos.x < endPos.x then
@@ -95,6 +96,15 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         return nil
     end
 
+    --Remove any old routes that we have just changed by placing a same color underground in the middle of. This isn't a belt braid in itself.
+    local oldRouteId = global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] or global.entityHandling.undergroundEntityIdToRouteId[endEntity.unit_number]
+    if oldRouteId ~= nil then
+        local oldRouteDetails = global.entityHandling.undergroundRoutes[oldRouteId]
+        local ugEntity1 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[1].position}[1]
+        local ugEntity2 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[2].position}[1]
+        EntityHandling.HandleRemovedUndergroundRoute(ugEntity1, ugEntity2)
+    end
+
     local pos = Utils.DeepCopy(startPos)
     local posString = Logging.PositionToString(pos)
     local tileEmpty = EntityHandling.CheckTileEmpty(surfaceId, posString, direction)
@@ -102,7 +112,6 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         return false
     end
     local reachedEndPos, tileDistance = false, 1
-    Logging.LogPrint("check - start: " .. posString, debug)
     while not reachedEndPos and tileDistance < 100 do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
@@ -110,7 +119,6 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
             pos.x = pos.x + change
         end
         posString = Logging.PositionToString(pos)
-        Logging.LogPrint("check: " .. posString, debug)
         tileEmpty = EntityHandling.CheckTileEmpty(surfaceId, posString, direction)
         if not tileEmpty then
             return false
@@ -121,11 +129,19 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         tileDistance = tileDistance + 1
     end
 
+    global.entityHandling.currentUndergroundRouteId = global.entityHandling.currentUndergroundRouteId + 1
+    local routeId = global.entityHandling.currentUndergroundRouteId
+    global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] = routeId
+    global.entityHandling.undergroundEntityIdToRouteId[endEntity.unit_number] = routeId
+    global.entityHandling.undergroundRoutes[routeId] = {
+        {entityId = startEntity.unit_number, position = startEntity.position},
+        {entityId = endEntity.unit_number, position = endEntity.position}
+    }
+
     pos = Utils.DeepCopy(startPos)
     posString = Logging.PositionToString(pos)
     EntityHandling.MarkTile(surfaceId, posString, direction)
     reachedEndPos, tileDistance = false, 1
-    Logging.LogPrint("mark - start: " .. posString, debug)
     while not reachedEndPos and tileDistance < 100 do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
@@ -133,7 +149,6 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
             pos.x = pos.x + change
         end
         posString = Logging.PositionToString(pos)
-        Logging.LogPrint("mark: " .. posString, debug)
         EntityHandling.MarkTile(surfaceId, posString, direction)
         if posString == endPosString then
             reachedEndPos = true
@@ -171,9 +186,13 @@ EntityHandling.UnMarkTile = function(surfaceId, tilePosString, direction)
 end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
-    local debug = false
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
     local endPosString = Logging.PositionToString(endPos)
+
+    --If theres no logged route using this underground then there is nothing to unmark or remove from globals.
+    if global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] == nil then
+        return
+    end
 
     local direction, change
     if startPos.x < endPos.x then
@@ -193,11 +212,15 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
         return nil
     end
 
+    local routeId = global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number]
+    global.entityHandling.undergroundRoutes[routeId] = nil
+    global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] = nil
+    global.entityHandling.undergroundEntityIdToRouteId[endEntity.unit_number] = nil
+
     local pos = Utils.DeepCopy(startPos)
     local posString = Logging.PositionToString(pos)
     EntityHandling.UnMarkTile(surfaceId, posString, direction)
     local reachedEndPos, tileDistance = false, 1
-    Logging.LogPrint("remove - start: " .. posString, debug)
     while not reachedEndPos and tileDistance < 100 do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
@@ -205,7 +228,6 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
             pos.x = pos.x + change
         end
         posString = Logging.PositionToString(pos)
-        Logging.LogPrint("remove: " .. posString, debug)
         EntityHandling.UnMarkTile(surfaceId, posString, direction)
         if posString == endPosString then
             reachedEndPos = true
