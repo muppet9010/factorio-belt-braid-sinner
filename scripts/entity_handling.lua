@@ -13,6 +13,7 @@ EntityHandling.CreateGlobals = function()
     global.entityHandling.currentUndergroundRouteId = global.entityHandling.currentUndergroundRouteId or 0
     global.entityHandling.undergroundRoutes = global.entityHandling.undergroundRoutes or {} -- array of pairs of underground belts: {entityId, position}
     global.entityHandling.undergroundEntityIdToRouteId = global.entityHandling.undergroundEntityIdToRouteId or {}
+    global.entityHandling.mapPurged = global.entityHandling.mapPurged or 0
 end
 
 EntityHandling.OnLoad = function()
@@ -75,6 +76,7 @@ EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
+    EntityHandling.PurgeCurrentSurfaces()
     local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
     local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
 
@@ -100,8 +102,8 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
     local oldRouteId = global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] or global.entityHandling.undergroundEntityIdToRouteId[endEntity.unit_number]
     if oldRouteId ~= nil then
         local oldRouteDetails = global.entityHandling.undergroundRoutes[oldRouteId]
-        local ugEntity1 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[1].position}[1]
-        local ugEntity2 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[2].position}[1]
+        local ugEntity1 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[1].position, limit = 1}[1]
+        local ugEntity2 = surface.find_entities_filtered {type = "underground-belt", position = oldRouteDetails[2].position, limit = 1}[1]
         EntityHandling.HandleRemovedUndergroundRoute(ugEntity1, ugEntity2)
     end
 
@@ -186,6 +188,7 @@ EntityHandling.UnMarkTile = function(surfaceId, tilePosString, direction)
 end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
+    EntityHandling.PurgeCurrentSurfaces()
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
     local endPosString = Logging.PositionToString(endPos)
 
@@ -233,6 +236,37 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
             reachedEndPos = true
         end
         tileDistance = tileDistance + 1
+    end
+end
+
+EntityHandling.PurgeCurrentSurfaces = function()
+    if global.entityHandling.mapPurged > 0 then
+        return
+    end
+    global.entityHandling.mapPurged = 1
+
+    global.entityHandling.undergroundTiles = {[1] = {}}
+    global.entityHandling.currentUndergroundRouteId = 0
+    global.entityHandling.undergroundRoutes = {}
+    global.entityHandling.undergroundEntityIdToRouteId = {}
+
+    for _, surface in pairs(game.surfaces) do
+        EntityHandling.PurgeSpecificSurface(surface)
+    end
+end
+
+EntityHandling.PurgeSpecificSurface = function(surface)
+    local ugEntities = surface.find_entities_filtered {type = "underground-belt"}
+    for _, ugEntity in pairs(ugEntities) do
+        if ugEntity ~= nil and ugEntity.valid then
+            local otherEndEntity = ugEntity.neighbours
+            if otherEndEntity ~= nil and global.entityHandling.undergroundEntityIdToRouteId[ugEntity.unit_number] == nil then
+                if not EntityHandling.HandleNewUndergroundRoute(ugEntity, otherEndEntity) then
+                    Interfaces.Call("Sinned.BurnOldBelt", ugEntity)
+                    Interfaces.Call("Sinned.BurnOldBelt", otherEndEntity)
+                end
+            end
+        end
     end
 end
 

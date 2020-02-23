@@ -1,8 +1,18 @@
 ---------------------------------------------------------------------------------------------------
+Version: 18.0.1
+Date: 2020-02-22
+  Features:
+    - When the mod is added to an existing save, upon first underground belt route being made or removed will check all the surfaces and purifies any existing offending underground belts.
+  Changes:
+  Bugfixes:
+  Info:
+
+---------------------------------------------------------------------------------------------------
 Version: 18.0.0
 Date: 2020-02-21
   Features:
     - Initial Release
+    - Mod only works on newly placed belts.
   Changes:
   Bugfixes:
   Info:
