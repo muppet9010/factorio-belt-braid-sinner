@@ -16,9 +16,7 @@ Details
 - The offending underground belts are consumed in to the earth by the worms lurking deep.
 - A message is sent to all players about each offence so they know to shun the offender.
 
-Existing Maps
+Existing Maps - WARNING
 ------------
 
-When this mod is applied to an existing save it will immediately search the map for any braided belts and purge them with fire. No retrospective punishment will be dealt.
-
-Some people have suggested this be a mod option, so that you could continue a game with braided belts from before. However, at present the mod can't distinguish multiple belts filling the same underground space and so couldn't handle properly if an existing braided belt was removed.
+When this mod is applied to an existing save, upon the first underground belt route being placed or removed it will immediately search the map for any braided belts and purge them with fire. No retrospective punishment to any players will be dealt for these.

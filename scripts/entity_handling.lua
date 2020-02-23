@@ -27,10 +27,6 @@ EntityHandling.OnLoad = function()
     Events.RegisterHandler(defines.events.on_surface_created, "EntityHandling.OnSurfaceCreated", EntityHandling.OnSurfaceCreated)
 end
 
-EntityHandling.OnStartup = function()
-    EntityHandling.PurgeCurrentSurfaces()
-end
-
 EntityHandling.OnSurfaceCreated = function(event)
     local surfaceId = event.surface_index
     global.entityHandling.undergroundTiles[surfaceId] = global.entityHandling.undergroundTiles[surfaceId] or {}
@@ -80,6 +76,7 @@ EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
+    EntityHandling.PurgeCurrentSurfaces()
     local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
     local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
 
@@ -191,6 +188,7 @@ EntityHandling.UnMarkTile = function(surfaceId, tilePosString, direction)
 end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
+    EntityHandling.PurgeCurrentSurfaces()
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
     local endPosString = Logging.PositionToString(endPos)
 

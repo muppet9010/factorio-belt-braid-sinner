@@ -21,8 +21,6 @@ local function OnStartup()
     CreateGlobals()
     OnLoad()
     OnSettingChanged(nil)
-
-    EntityHandling.OnStartup()
 end
 
 script.on_init(OnStartup)
