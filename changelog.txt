@@ -1,8 +1,18 @@
 ---------------------------------------------------------------------------------------------------
+Version: 18.0.1
+Date: 2020-02-22
+  Features:
+    - When mod is added to an existing save it checks all the surfaces and purifies offending underground belts.
+  Changes:
+  Bugfixes:
+  Info:
+
+---------------------------------------------------------------------------------------------------
 Version: 18.0.0
 Date: 2020-02-21
   Features:
     - Initial Release
+    - Mod only works on newly placed belts.
   Changes:
   Bugfixes:
   Info:

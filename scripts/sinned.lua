@@ -12,6 +12,7 @@ end
 
 Sinned.OnLoad = function()
     Interfaces.RegisterInterface("Sinned.Committed", Sinned.Committed)
+    Interfaces.RegisterInterface("Sinned.BurnOldBelt", Sinned.BurnOldBelt)
 end
 
 Sinned.OnSettingChanged = function(event)
@@ -73,6 +74,16 @@ Sinned.SwallowEntityInHole = function(targetEntity)
 
     targetEntity.destroy()
     surface.create_entity {name = "belt_braid_sinner-explosion", position = Utils.ApplyOffsetToPosition(position, {x = 0, y = 0.5})}
+end
+
+Sinned.BurnOldBelt = function(ugEntity)
+    local surface, position = ugEntity.surface, ugEntity.position
+
+    surface.create_entity {name = "belt_braid_sinner-fire", position = position, initial_ground_flame_count = 10}
+    ugEntity.die()
+
+    local ugGhost = surface.find_entities_filtered {ghost_type = "underground-belt", position = position, limit = 1}[1]
+    ugGhost.destroy()
 end
 
 return Sinned
