@@ -29,7 +29,7 @@ EntityHandling.OnLoad = function()
     Events.RegisterHandler(defines.events.on_player_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterHandler(defines.events.on_robot_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterHandler(defines.events.on_entity_died, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
-    Events.RegisterHandler(defines.events.script_raised_destroy, "EntityHandling.OnScriptRaisedDestroyedEvent", EntityHandling.OnScriptRaisedDestroyedEvent)
+    Events.RegisterHandler(defines.events.script_raised_destroy, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterHandler(defines.events.on_surface_created, "EntityHandling.OnSurfaceCreated", EntityHandling.OnSurfaceCreated)
     Commands.Register("belt_braid_sinner_purge_surfaces", {"api-description.belt_braid_sinner_purge_surfaces"}, EntityHandling.PurgeCurrentSurfaces, true)
     Commands.Register("belt_braid_sinner_toggle_debug_render", {"api-description.belt_braid_sinner_toggle_debug_render"}, EntityHandling.ToggleDebugRender, true)
@@ -74,19 +74,6 @@ EntityHandling.OnScriptRaisedBuiltEvent = function(event)
 end
 
 EntityHandling.OnUndergroundRemovedEvent = function(event)
-    local ugEntity = event.entity
-    if ugEntity.type ~= "underground-belt" then
-        return
-    end
-
-    local otherEndEntity = ugEntity.neighbours
-    if otherEndEntity == nil then
-        return
-    end
-    EntityHandling.HandleRemovedUndergroundRoute(ugEntity, otherEndEntity)
-end
-
-EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
     local entity = event.entity
     if entity.type ~= "underground-belt" then
         return
@@ -105,7 +92,7 @@ EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
-    EntityHandling.PurgeCurrentSurfaces()
+    EntityHandling.CheckAndPurgeCurrentSurfaces()
     local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
     local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
 
@@ -218,7 +205,10 @@ EntityHandling.UnMarkTile = function(surfaceId, tilePosString, direction)
 end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
-    EntityHandling.PurgeCurrentSurfaces()
+    EntityHandling.CheckAndPurgeCurrentSurfaces()
+    if startEntity == nil or (not startEntity.valid) or endEntity == nil or (not endEntity.valid) then
+        return
+    end
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
     local endPosString = Logging.PositionToString(endPos)
 
@@ -271,10 +261,14 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
     EntityHandling.RefreshDebugRender()
 end
 
-EntityHandling.PurgeCurrentSurfaces = function()
+EntityHandling.CheckAndPurgeCurrentSurfaces = function()
     if global.entityHandling.mapPurged == purgeVersion then
         return
     end
+    EntityHandling.PurgeCurrentSurfaces()
+end
+
+EntityHandling.PurgeCurrentSurfaces = function()
     global.entityHandling.mapPurged = purgeVersion
 
     global.entityHandling.undergroundTiles = {[1] = {}}
@@ -285,6 +279,8 @@ EntityHandling.PurgeCurrentSurfaces = function()
     for _, surface in pairs(game.surfaces) do
         EntityHandling.PurgeSpecificSurface(surface)
     end
+
+    EntityHandling.RefreshDebugRender()
 end
 
 EntityHandling.PurgeSpecificSurface = function(surface)
