@@ -20,3 +20,9 @@ Existing Maps - WARNING
 ------------
 
 When this mod is applied to an existing save, upon the first underground belt route being placed or removed it will immediately search the map for any braided belts and purge them with fire. No retrospective punishment to any players will be dealt for these.
+
+Commands
+-----------
+
+- belt_braid_sinner_purge_surfaces: Clears all recorded underground belt tiles and recalcualtes them based on current underground belts on map. Used for fixing any issues that arise in a current map due to mod compatibility issues.
+- belt_braid_sinner_toggle_debug_render: toggles a render of tiles flagged as undergrounds on and off.

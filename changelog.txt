@@ -2,6 +2,8 @@
 Version: 18.0.2
 Date: 2020-02-29
   Features:
+    - added command to refresh the underground belt tiles record to fix after any mod compatibility issues.
+    - added command to render a debug layer showing tiles marked as undergrounds.
   Changes:
   Bugfixes:
     - handles script_destroyed_event correctly - works with construction drones mod.
