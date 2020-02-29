@@ -1,3 +1,4 @@
 Next:
+    - handle belts marked for decon and undecon as equivilvent to build and non build.
 
 Future:

@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 18.0.3
+Date: 2020-02-29
+  Features:
+  Changes:
+  Bugfixes:
+    - fix robots deconstructing undergrounds not triggering correctly
+  Info:
+---------------------------------------------------------------------------------------------------
 Version: 18.0.2
 Date: 2020-02-29
   Features:
