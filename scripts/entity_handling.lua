@@ -59,7 +59,7 @@ end
 
 EntityHandling.OnScriptRaisedBuiltEvent = function(event)
     local entity = event.entity
-    if ugEntity.type ~= "underground-belt" then
+    if entity.type ~= "underground-belt" then
         return
     end
 
