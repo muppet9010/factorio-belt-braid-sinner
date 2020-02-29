@@ -5,6 +5,7 @@ local Utils = require("utility/utils")
 local Interfaces = require("utility/interfaces")
 
 local beltDirections = {horizontal = "h", vertical = "v"}
+local purgeVersion = 2
 
 EntityHandling.CreateGlobals = function()
     global.entityHandling = global.entityHandling or {}
@@ -70,9 +71,20 @@ end
 
 EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
     local entity = event.entity
-    if entity.type == "underground-belt" then
-        EntityHandling.OnUndergroundRemovedEvent({entity = entity})
+    if entity.type ~= "underground-belt" then
+        return
     end
+
+    local routeId = global.entityHandling.undergroundEntityIdToRouteId[entity.unit_number]
+    if routeId == nil then
+        return
+    end
+
+    local surface = entity.surface
+    local routeDetails = global.entityHandling.undergroundRoutes[routeId]
+    local ugEntity1 = surface.find_entities_filtered {type = "underground-belt", position = routeDetails[1].position, limit = 1}[1]
+    local ugEntity2 = surface.find_entities_filtered {type = "underground-belt", position = routeDetails[2].position, limit = 1}[1]
+    EntityHandling.HandleRemovedUndergroundRoute(ugEntity1, ugEntity2)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
@@ -240,10 +252,10 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
 end
 
 EntityHandling.PurgeCurrentSurfaces = function()
-    if global.entityHandling.mapPurged > 0 then
+    if global.entityHandling.mapPurged == purgeVersion then
         return
     end
-    global.entityHandling.mapPurged = 1
+    global.entityHandling.mapPurged = purgeVersion
 
     global.entityHandling.undergroundTiles = {[1] = {}}
     global.entityHandling.currentUndergroundRouteId = 0
