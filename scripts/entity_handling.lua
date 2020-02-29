@@ -3,8 +3,12 @@ local Logging = require("utility/logging")
 local Events = require("utility/events")
 local Utils = require("utility/utils")
 local Interfaces = require("utility/interfaces")
+local Commands = require("utility/commands")
+local Colors = require("utility/colors")
 
 local beltDirections = {horizontal = "h", vertical = "v"}
+local purgeVersion = 2
+local beltMaxLength = 100
 
 EntityHandling.CreateGlobals = function()
     global.entityHandling = global.entityHandling or {}
@@ -14,17 +18,21 @@ EntityHandling.CreateGlobals = function()
     global.entityHandling.undergroundRoutes = global.entityHandling.undergroundRoutes or {} -- array of pairs of underground belts: {entityId, position}
     global.entityHandling.undergroundEntityIdToRouteId = global.entityHandling.undergroundEntityIdToRouteId or {}
     global.entityHandling.mapPurged = global.entityHandling.mapPurged or 0
+    global.entityHandling.drawUGTiles = global.entityHandling.drawUGTiles or false
+    global.entityHandling.debugRenderIds = global.entityHandling.debugRenderIds or {}
 end
 
 EntityHandling.OnLoad = function()
-    Events.RegisterHandler(defines.events.on_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_robot_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent, "typeUndergroundBelt")
+    Events.RegisterHandler(defines.events.on_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent)
+    Events.RegisterHandler(defines.events.on_robot_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent)
     Events.RegisterHandler(defines.events.script_raised_built, "EntityHandling.OnScriptRaisedBuiltEvent", EntityHandling.OnScriptRaisedBuiltEvent)
-    Events.RegisterHandler(defines.events.on_player_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_robot_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_entity_died, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
+    Events.RegisterHandler(defines.events.on_player_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
+    Events.RegisterHandler(defines.events.on_robot_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
+    Events.RegisterHandler(defines.events.on_entity_died, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterHandler(defines.events.script_raised_destroy, "EntityHandling.OnScriptRaisedDestroyedEvent", EntityHandling.OnScriptRaisedDestroyedEvent)
     Events.RegisterHandler(defines.events.on_surface_created, "EntityHandling.OnSurfaceCreated", EntityHandling.OnSurfaceCreated)
+    Commands.Register("belt_braid_sinner_purge_surfaces", {"api-description.belt_braid_sinner_purge_surfaces"}, EntityHandling.PurgeCurrentSurfaces, true)
+    Commands.Register("belt_braid_sinner_toggle_debug_render", {"api-description.belt_braid_sinner_toggle_debug_render"}, EntityHandling.ToggleDebugRender, true)
 end
 
 EntityHandling.OnSurfaceCreated = function(event)
@@ -34,6 +42,10 @@ end
 
 EntityHandling.OnUndergroundBuiltEvent = function(event)
     local ugEntity = event.created_entity
+    if ugEntity.type ~= "underground-belt" then
+        return
+    end
+
     local otherEndEntity = ugEntity.neighbours
     if otherEndEntity == nil then
         return
@@ -54,13 +66,19 @@ end
 
 EntityHandling.OnScriptRaisedBuiltEvent = function(event)
     local entity = event.entity
-    if entity.type == "underground-belt" then
-        EntityHandling.OnUndergroundBuiltEvent({created_entity = entity})
+    if entity.type ~= "underground-belt" then
+        return
     end
+
+    EntityHandling.OnUndergroundBuiltEvent({created_entity = entity})
 end
 
 EntityHandling.OnUndergroundRemovedEvent = function(event)
     local ugEntity = event.entity
+    if ugEntity.type ~= "underground-belt" then
+        return
+    end
+
     local otherEndEntity = ugEntity.neighbours
     if otherEndEntity == nil then
         return
@@ -70,9 +88,20 @@ end
 
 EntityHandling.OnScriptRaisedDestroyedEvent = function(event)
     local entity = event.entity
-    if entity.type == "underground-belt" then
-        EntityHandling.OnUndergroundRemovedEvent({entity = entity})
+    if entity.type ~= "underground-belt" then
+        return
     end
+
+    local routeId = global.entityHandling.undergroundEntityIdToRouteId[entity.unit_number]
+    if routeId == nil then
+        return
+    end
+
+    local surface = entity.surface
+    local routeDetails = global.entityHandling.undergroundRoutes[routeId]
+    local ugEntity1 = surface.find_entities_filtered {type = "underground-belt", position = routeDetails[1].position, limit = 1}[1]
+    local ugEntity2 = surface.find_entities_filtered {type = "underground-belt", position = routeDetails[2].position, limit = 1}[1]
+    EntityHandling.HandleRemovedUndergroundRoute(ugEntity1, ugEntity2)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
@@ -114,7 +143,7 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         return false
     end
     local reachedEndPos, tileDistance = false, 1
-    while not reachedEndPos and tileDistance < 100 do
+    while not reachedEndPos and tileDistance < beltMaxLength do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
         else
@@ -144,7 +173,7 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
     posString = Logging.PositionToString(pos)
     EntityHandling.MarkTile(surfaceId, posString, direction)
     reachedEndPos, tileDistance = false, 1
-    while not reachedEndPos and tileDistance < 100 do
+    while not reachedEndPos and tileDistance < beltMaxLength do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
         else
@@ -158,6 +187,7 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         tileDistance = tileDistance + 1
     end
 
+    EntityHandling.RefreshDebugRender()
     return true
 end
 
@@ -224,7 +254,7 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
     local posString = Logging.PositionToString(pos)
     EntityHandling.UnMarkTile(surfaceId, posString, direction)
     local reachedEndPos, tileDistance = false, 1
-    while not reachedEndPos and tileDistance < 100 do
+    while not reachedEndPos and tileDistance < beltMaxLength do
         if direction == beltDirections.vertical then
             pos.y = pos.y + change
         else
@@ -237,13 +267,15 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
         end
         tileDistance = tileDistance + 1
     end
+
+    EntityHandling.RefreshDebugRender()
 end
 
 EntityHandling.PurgeCurrentSurfaces = function()
-    if global.entityHandling.mapPurged > 0 then
+    if global.entityHandling.mapPurged == purgeVersion then
         return
     end
-    global.entityHandling.mapPurged = 1
+    global.entityHandling.mapPurged = purgeVersion
 
     global.entityHandling.undergroundTiles = {[1] = {}}
     global.entityHandling.currentUndergroundRouteId = 0
@@ -268,6 +300,59 @@ EntityHandling.PurgeSpecificSurface = function(surface)
             end
         end
     end
+end
+
+EntityHandling.ToggleDebugRender = function()
+    if global.entityHandling.drawUGTiles then
+        EntityHandling.RemoveDebugRender()
+    else
+        EntityHandling.AddDebugRender()
+    end
+end
+
+EntityHandling.RefreshDebugRender = function()
+    if not global.entityHandling.drawUGTiles then
+        return
+    end
+
+    EntityHandling.RemoveDebugRender()
+    EntityHandling.AddDebugRender()
+end
+
+EntityHandling.AddDebugRender = function()
+    global.entityHandling.drawUGTiles = true
+
+    for surfaceId, surfaceUGTiles in pairs(global.entityHandling.undergroundTiles) do
+        local surface = game.surfaces[surfaceId]
+        for tilePosString, directions in pairs(surfaceUGTiles) do
+            local directionString = nil
+            if directions[beltDirections.vertical] then
+                directionString = "v"
+            end
+            if directions[beltDirections.horizontal] then
+                if directionString ~= nil then
+                    directionString = "v-h"
+                else
+                    directionString = "h"
+                end
+            end
+
+            local cleansedPosString = string.gsub(tilePosString, "[()]", "")
+            local commaIndex = string.find(cleansedPosString, ",")
+            local xPos = string.sub(cleansedPosString, 1, commaIndex - 1)
+            local yPos = string.sub(cleansedPosString, commaIndex + 2)
+            local renderId = rendering.draw_text {text = directionString, surface = surface, target = {x = xPos, y = yPos}, color = Colors.white}
+            table.insert(global.entityHandling.debugRenderIds, renderId)
+        end
+    end
+end
+
+EntityHandling.RemoveDebugRender = function()
+    global.entityHandling.drawUGTiles = false
+    for _, id in pairs(global.entityHandling.debugRenderIds) do
+        rendering.destroy(id)
+    end
+    global.entityHandling.debugRenderIds = {}
 end
 
 return EntityHandling
