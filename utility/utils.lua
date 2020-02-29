@@ -84,14 +84,6 @@ function Utils.TableToProperPosition(thing)
     end
 end
 
-function Utils.ArePositionsEqual(pos1, pos2)
-    if pos1.x == pos2.x and pos1.y == pos2.y then
-        return true
-    else
-        return false
-    end
-end
-
 function Utils.ApplyBoundingBoxToPosition(centrePos, boundingBox, orientation)
     if orientation == nil or orientation == 0 or orientation == 1 then
         return {

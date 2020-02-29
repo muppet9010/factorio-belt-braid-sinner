@@ -18,12 +18,12 @@ EntityHandling.CreateGlobals = function()
 end
 
 EntityHandling.OnLoad = function()
-    Events.RegisterHandler(defines.events.on_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_robot_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent, "typeUndergroundBelt")
+    Events.RegisterHandler(defines.events.on_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent)
+    Events.RegisterHandler(defines.events.on_robot_built_entity, "EntityHandling.OnUndergroundBuiltEvent", EntityHandling.OnUndergroundBuiltEvent)
     Events.RegisterHandler(defines.events.script_raised_built, "EntityHandling.OnScriptRaisedBuiltEvent", EntityHandling.OnScriptRaisedBuiltEvent)
-    Events.RegisterHandler(defines.events.on_player_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_robot_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
-    Events.RegisterHandler(defines.events.on_entity_died, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent, "typeUndergroundBelt")
+    Events.RegisterHandler(defines.events.on_player_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
+    Events.RegisterHandler(defines.events.on_robot_mined_entity, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
+    Events.RegisterHandler(defines.events.on_entity_died, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterHandler(defines.events.script_raised_destroy, "EntityHandling.OnScriptRaisedDestroyedEvent", EntityHandling.OnScriptRaisedDestroyedEvent)
     Events.RegisterHandler(defines.events.on_surface_created, "EntityHandling.OnSurfaceCreated", EntityHandling.OnSurfaceCreated)
 end
@@ -35,6 +35,10 @@ end
 
 EntityHandling.OnUndergroundBuiltEvent = function(event)
     local ugEntity = event.created_entity
+    if ugEntity.type ~= "underground-belt" then
+        return
+    end
+
     local otherEndEntity = ugEntity.neighbours
     if otherEndEntity == nil then
         return
@@ -55,13 +59,19 @@ end
 
 EntityHandling.OnScriptRaisedBuiltEvent = function(event)
     local entity = event.entity
-    if entity.type == "underground-belt" then
-        EntityHandling.OnUndergroundBuiltEvent({created_entity = entity})
+    if ugEntity.type ~= "underground-belt" then
+        return
     end
+
+    EntityHandling.OnUndergroundBuiltEvent({created_entity = entity})
 end
 
 EntityHandling.OnUndergroundRemovedEvent = function(event)
     local ugEntity = event.entity
+    if ugEntity.type ~= "underground-belt" then
+        return
+    end
+
     local otherEndEntity = ugEntity.neighbours
     if otherEndEntity == nil then
         return
