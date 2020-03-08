@@ -1,4 +1,11 @@
 Next:
+	- Through using upgrade planner belts can be braided. Guessing by placing the same colour and then upping certain pairs?
     - handle belts marked for decon and undecon as equivilvent to build and non build.
+	- Make the worm in the hole a bit more visible with the smoke over it
+	- make a map marker message for when it occurs so everyone can see where the offense was (helpful if placed by bots)
+	- support warning setting of -1 for infinite warnings, never any punishments
+	- option to provide custom messages
 
 Future:
+	- option to block crossing belts, not just same line.
+	- option to include underground pipes.
