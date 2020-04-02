@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 18.0.4
+Date: 2020-04-02
+  Features:
+  Changes:
+  Bugfixes:
+    - react to script_revive_event - as construction drones now use this to build things.
+  Info:
+---------------------------------------------------------------------------------------------------
 Version: 18.0.3
 Date: 2020-02-29
   Features:
