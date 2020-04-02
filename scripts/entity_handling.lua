@@ -64,6 +64,7 @@ EntityHandling.OnUndergroundBuiltEvent = function(event)
     if ugEntity.type ~= "underground-belt" then
         return
     end
+    EntityHandling.CheckAndPurgeCurrentSurfaces()
 
     local otherEndEntity = ugEntity.neighbours
     if otherEndEntity == nil then
@@ -99,6 +100,7 @@ EntityHandling.OnUndergroundRemovedEvent = function(event)
     if entity.type ~= "underground-belt" and (entity.type == "ghost" and entity.ghost_type ~= "underground-belt") then
         return
     end
+    EntityHandling.CheckAndPurgeCurrentSurfaces()
 
     local routeId = global.entityHandling.undergroundEntityIdToRouteId[entity.unit_number]
     if routeId == nil then
@@ -122,7 +124,12 @@ EntityHandling.OnUndergroundRemovedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
-    EntityHandling.CheckAndPurgeCurrentSurfaces()
+    WHEN THIS IS CALLED AFTER AN UPGRADE IT DOESN'T FIND THE NEW UG AT THE SPOTS AS WE DON'T DO A LOOKUP ANY MORE. BUT OLD CODE DIDN'T HANDLE GHOSTS, BUT NEITHER DOES NEW CODE SO MAYBE OLD CODE IS FINE AFTER ALL???
+    BREAKS ON CHECKING TILE AS THEN IT DOES A LOOKUP IN INTERNAL GLOBALS BASED ON LOCATION AND FINDS THE OLD ENTITY REFERENCE.
+
+    OLD CODE:
+    surface.find_entities_filtered {type = "underground-belt", position = routeDetails[1].position, limit = 1}[1]
+
     local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
     local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
 
@@ -144,7 +151,7 @@ EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
         return nil
     end
 
-    --Remove any old routes that we have just changed by placing a same color underground in the middle of. This isn't a belt braid in itself.
+    --Remove any old routes that we have just changed by placing a single same color underground in the middle of. This isn't a belt braid in itself. Doesn't catch if we use bots to place a pair in between old belt pair at once.
     local oldRouteId = global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] or global.entityHandling.undergroundEntityIdToRouteId[endEntity.unit_number]
     if oldRouteId ~= nil then
         local oldRouteDetails = global.entityHandling.undergroundRoutes[oldRouteId]
@@ -241,17 +248,16 @@ EntityHandling.UnMarkTile = function(surfaceId, tilePosString, direction)
 end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
-    EntityHandling.CheckAndPurgeCurrentSurfaces()
     if (startEntity == nil) or (not startEntity.valid) or (endEntity == nil) or (not endEntity.valid) then
         Logging.LogPrint("WARNING - Belt Braid Sinner: underground route contains empty or invalid entites. Purge the map via command to fix and report to mod author.")
-        return
+        return false
     end
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
     local endPosString = Logging.PositionToString(endPos)
 
     --If theres no logged route using this underground then there is nothing to unmark or remove from globals.
     if global.entityHandling.undergroundEntityIdToRouteId[startEntity.unit_number] == nil then
-        return
+        return nil
     end
 
     local direction, change
@@ -296,6 +302,7 @@ EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
     end
 
     EntityHandling.RefreshDebugRender()
+    return true
 end
 
 EntityHandling.CheckAndPurgeCurrentSurfaces = function()

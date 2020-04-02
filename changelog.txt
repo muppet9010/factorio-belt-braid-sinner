@@ -6,9 +6,8 @@ Date: 2020-04-02
   Changes:
   Bugfixes:
     - react to script_revive_event - as construction drones now use this to build things.
-    - handle a middle underground in a row of 3 being removed and the outer 2 undergrounds connecting up automatically: > (<) <
-    - support deconstruction
-    - handle a pair of underground being inserted by bot in beteen an exisitng pair of same type of undergrounds
+    - fixed numerous edge cases includign adding and removing belt pairs within belt pairs.
+    - known upgrade planner exploit resolved
   Info:
 ---------------------------------------------------------------------------------------------------
 Version: 18.0.3
