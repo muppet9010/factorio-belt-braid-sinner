@@ -1,6 +1,6 @@
-local Events = require("utility/events")
 local EntityHandling = require("scripts/entity_handling")
 local Sinned = require("scripts/sinned")
+local EventScheduler = require("utility/event-scheduler")
 
 local function CreateGlobals()
     EntityHandling.CreateGlobals()
@@ -27,3 +27,4 @@ script.on_init(OnStartup)
 script.on_configuration_changed(OnStartup)
 script.on_event(defines.events.on_runtime_mod_setting_changed, OnSettingChanged)
 script.on_load(OnLoad)
+EventScheduler.RegisterScheduler()

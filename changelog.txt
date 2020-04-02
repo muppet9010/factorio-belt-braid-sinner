@@ -5,6 +5,8 @@ Date: 2020-04-02
   Changes:
   Bugfixes:
     - react to script_revive_event - as construction drones now use this to build things.
+    - handle a middle underground in a row of 3 being removed and the outer 2 undergrounds connecting up automatically: > (<) <
+    - support deconstruction
   Info:
 ---------------------------------------------------------------------------------------------------
 Version: 18.0.3
