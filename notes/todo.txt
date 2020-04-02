@@ -1,3 +1,6 @@
+Bugs:
+    - doesn't handle upgrade planner and the upgrade cancel action you can do to to only half the underground
+
 Next:
 	- Through using upgrade planner belts can be braided. Guessing by placing the same colour and then upping certain pairs?
     - handle belts marked for decon and undecon as equivilvent to build and non build.
