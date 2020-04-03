@@ -45,6 +45,8 @@ EntityHandling.OnLoad = function()
     Events.RegisterHandler(defines.events.script_raised_destroy, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
     Events.RegisterEvent(defines.events.on_marked_for_deconstruction)
     Events.RegisterHandler(defines.events.on_marked_for_deconstruction, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
+    Events.RegisterEvent(defines.events.on_marked_for_upgrade)
+    Events.RegisterHandler(defines.events.on_marked_for_upgrade, "EntityHandling.OnUndergroundRemovedEvent", EntityHandling.OnUndergroundRemovedEvent)
 
     Events.RegisterEvent(defines.events.on_surface_created)
     Events.RegisterHandler(defines.events.on_surface_created, "EntityHandling.OnSurfaceCreated", EntityHandling.OnSurfaceCreated)
@@ -52,6 +54,10 @@ EntityHandling.OnLoad = function()
     Commands.Register("belt_braid_sinner_toggle_debug_render", {"api-description.belt_braid_sinner_toggle_debug_render"}, EntityHandling.ToggleDebugRender, true)
     EventScheduler.RegisterScheduledEventType("EntityHandling.ScheduledOnUndergroundBuiltEvent", EntityHandling.ScheduledOnUndergroundBuiltEvent)
     EventScheduler.RegisterScheduledEventType("EntityHandling.ScheduledCheckForNearbyUnknownConnectedUndergrounds", EntityHandling.ScheduledCheckForNearbyUnknownConnectedUndergrounds)
+end
+
+EntityHandling.OnStartup = function()
+    --EntityHandling.CheckAndPurgeCurrentSurfaces()
 end
 
 EntityHandling.OnSurfaceCreated = function(event)
@@ -124,11 +130,10 @@ EntityHandling.OnUndergroundRemovedEvent = function(event)
 end
 
 EntityHandling.HandleNewUndergroundRoute = function(startEntity, endEntity)
-    WHEN THIS IS CALLED AFTER AN UPGRADE IT DOESN'T FIND THE NEW UG AT THE SPOTS AS WE DON'T DO A LOOKUP ANY MORE. BUT OLD CODE DIDN'T HANDLE GHOSTS, BUT NEITHER DOES NEW CODE SO MAYBE OLD CODE IS FINE AFTER ALL???
-    BREAKS ON CHECKING TILE AS THEN IT DOES A LOOKUP IN INTERNAL GLOBALS BASED ON LOCATION AND FINDS THE OLD ENTITY REFERENCE.
-
-    OLD CODE:
-    surface.find_entities_filtered {type = "underground-belt", position = routeDetails[1].position, limit = 1}[1]
+    if (startEntity == nil) or (not startEntity.valid) or (endEntity == nil) or (not endEntity.valid) then
+        Logging.LogPrint("WARNING - Belt Braid Sinner: add missing or invalid underground entities to underground route. Purge the map via command to fix and report to mod author.")
+        return false
+    end
 
     local startPos, endPos, surface = startEntity.position, endEntity.position, startEntity.surface
     local endPosString, surfaceId = Logging.PositionToString(endPos), surface.index
@@ -249,7 +254,7 @@ end
 
 EntityHandling.HandleRemovedUndergroundRoute = function(startEntity, endEntity)
     if (startEntity == nil) or (not startEntity.valid) or (endEntity == nil) or (not endEntity.valid) then
-        Logging.LogPrint("WARNING - Belt Braid Sinner: underground route contains empty or invalid entites. Purge the map via command to fix and report to mod author.")
+        Logging.LogPrint("WARNING - Belt Braid Sinner: remove missing or invalid underground entities from underground route. Purge the map via command to fix and report to mod author.")
         return false
     end
     local startPos, endPos, surfaceId = startEntity.position, endEntity.position, startEntity.surface.index
